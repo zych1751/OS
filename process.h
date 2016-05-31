@@ -1,6 +1,7 @@
 #include<vector>
 #include<string>
 #include<utility>
+#include<cstdio>
 
 using namespace std;
 

@@ -122,7 +122,7 @@ void Scheduler::process()
 			break;
 		}
 
-	if(all_zero)
+	if(q.size() != 0 && all_zero)
 	{
 		remain_time = max_remain;
 		give_time_quantum(give_time);
@@ -133,16 +133,24 @@ void Scheduler::process()
 	//현재 수행중인 Process가 없을경우 획득
 	if(cur == NULL)
 	{
-		if(q.size() == 0)
+		while(1)
 		{
-			cur_cycle++;
-			return;	//실행될 프로세스가 없음
+			if(q.size() == 0)
+			{
+				cur_cycle++;
+				return;	//실행될 프로세스가 없음
+			}
+			Process* temp = q.front();
+			q.pop_front();
+			cur = temp;
+			process_time = max_process;
+			change = true;
+
+			if(cur->time != 0)
+				break;
+
+			q.push_back(cur);
 		}
-		Process* temp = q.front();
-		q.pop_front();
-		cur = temp;
-		process_time = max_process;
-		change = true;
 	}
 	//////////////////////////////////////////////
 
@@ -151,36 +159,72 @@ void Scheduler::process()
 	{
 		printf("%d\t%d\t", cur_cycle, cur->p_id);
 		cout << cur->name << "\n";
+		/*for(auto it = q.begin(); it != q.end(); it++)
+			cout << (*it)->name << " ";
+		printf("\n");
+		for(auto it = sleep.begin(); it != sleep.end(); it++)
+			cout << (*it)->name << " ";
+		printf("\n");
+		for(auto it = IO.begin(); it != IO.end(); it++)
+			cout << (*it)->name << " ";
+		printf("\n");*/
 	}
 	///////////////////////////
 	
 	//Process 명령 수행
 	int temp = cur->do_process();
-	if(temp == 0 || temp == 1 || temp == 2 || temp == 3);
-	else if(temp == 4)
+	if(cur->code_idx == (int)cur->code_array.size())
 	{
-		int c;
-		//Sleep
+		process_time = max_process;
+		cur = NULL;
 	}
-	else
-	{
-		int c;
-		//IOWait
+
+	if(cur != NULL)
+	{	
+		if(temp == 0 || temp == 1 || temp == 2 || temp == 3);
+		else if(temp == 4)
+		{
+			//Sleep
+			if(cur->sleep_time == 0)
+			{
+				q.push_back(cur);
+				cur = NULL;
+			}
+			else
+			{
+				sleep.push_back(cur);
+			cur = NULL;
+			}
+		}
+		else if(temp == 5)
+		{
+			//IOWait
+			IO.push_back(cur);
+			cur = NULL;
+		}
 	}
 	/////////////////////////////////
 
 
-	if(cur->time == 0)
+	if(cur != NULL)
 	{
-		q.push_back(cur);
-		cur = NULL;
+		if(cur->time == 0)
+		{
+			process_time = max_process;
+			q.push_back(cur);
+			cur = NULL;
+		}
+		else if(--process_time == 0)
+		{
+			process_time = max_process;
+			q.push_back(cur);
+			cur = NULL;
+		}
 	}
-	else if(--process_time == 0)
-	{
+	else
 		process_time = max_process;
-		q.push_back(cur);
-		cur = NULL;
-	}
+
+
 	for(int i = 0; i < sleep.size(); i++)
 		sleep[i]->sleep_time--;
 
@@ -226,7 +270,6 @@ int main()
 		sch.process();
 	}
 
-	return 0;
 	while(!sch.q.empty() || sch.cur != NULL || !sch.sleep.empty())
 	{
 		exit(0);
