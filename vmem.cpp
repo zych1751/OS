@@ -1,5 +1,10 @@
 #include "vmem.h"
-#include "pmem.h"
+
+VBlock::VBlock()
+{
+	valid = false;
+	match = NULL;
+}
 
 Vmem::Vmem(int size, Pmem* mem)
 {

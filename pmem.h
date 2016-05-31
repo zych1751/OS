@@ -1,36 +1,42 @@
+#include <vector>
+
+#ifndef PMEM_H_
+#define PMEM_H_
 #include "vmem.h"
 
-class Pmem
+using namespace std;
+
+class Memory // physical_memory
 {
 public:
-	Pmem(int size);
-	int find_empty(int size); // return idx
-	void allocate(VBlock* vmem, int size);
+	VBlock* reverse;
 
-	int total_size;
-	PBlock* arr;
-	Memory* mem;
+	Memory();
 };
 
 class PBlock
 {
 public:
-	PBlock()
-	{
-		matched = false;
-	}
+	PBlock();
 	Memory* start;
 	bool matched;
 	int size;
 };
 
-class Memory // physical_memory
+class Pmem
 {
 public:
-	Vblock* reverse;
+	Pmem(int size);
+	int find_empty(int size, int idx); // return idx
+	void pop_LRU();
+	void allocate(VBlock* vmem, int size);
+	void deallocate(int p_id);	//PBlock idx
 
-	Memory()
-	{
-		reverse = NULL;
-	}
+	int total_size;
+	PBlock* arr;
+	Memory* mem;
+	vector<pair<int, int> > LRU; // PBlock idx, recently_used_time;
+	int LRU_idx;
 };
+
+#endif
