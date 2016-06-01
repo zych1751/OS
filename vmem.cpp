@@ -7,12 +7,15 @@ VBlock::VBlock()
 	match = NULL;
 }
 
-Vmem::Vmem(int size, Pmem* mem): size(size)
+Vmem::Vmem(int size, Pmem* mem, int p_id): size(size), p_id(p_id)
 {
 	a_id = 0;
 	arr = new VBlock[size];
 	for(int i = 0; i < size; i++)
+	{
 		arr[i].a_id = -1;
+		arr[i].p_id = p_id;
+	}
 	pmem = mem;
 }
 
@@ -39,7 +42,8 @@ void Vmem::allocate(int obj_size)
 		}
 	}
 
-	pmem->allocate(start, obj_size, a_id++);
+	pmem->allocate(start, obj_size, p_id, a_id);
+	a_id++;
 }
 
 void Vmem::access(int a_id)
@@ -56,9 +60,10 @@ void Vmem::access(int a_id)
 			}
 		}
 	}
+	pmem->update_LRU(p_id, a_id);
 }
 
-void Vmem::deallocate(int a_id)
+void Vmem::deallocate(int a_id) // LRU처리
 {
 	for(int i = 0; i < size; i++)
 	{

@@ -11,7 +11,7 @@ public:
 	VBlock();
 	bool valid;
 	Memory* match;
-	int a_id;
+	int a_id, p_id;
 };
 
 class Vmem
@@ -21,8 +21,9 @@ public:
 	VBlock* arr;
 	Pmem* pmem;
 	int size;
+	int p_id;
 
-	Vmem(int size, Pmem* mem);
+	Vmem(int size, Pmem* mem, int p_id);
 	void allocate(int obj_size);
 	void access(int a_id);
 	void deallocate(int a_id);

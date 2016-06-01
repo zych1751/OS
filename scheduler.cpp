@@ -138,6 +138,7 @@ void Scheduler::process()
 	/////////////////////////////////////
 
 	bool change = false;
+	bool do_nothing = false;
 	//현재 수행중인 Process가 없을경우 획득
 	if(cur == NULL)
 	{
@@ -145,8 +146,8 @@ void Scheduler::process()
 		{
 			if(q.size() == 0)
 			{
-				cur_cycle++;
-				return;	//실행될 프로세스가 없음
+				do_nothing = true;
+				break;	//실행될 프로세스가 없음
 			}
 			Process* temp = q.front();
 			q.pop_front();
@@ -169,109 +170,122 @@ void Scheduler::process()
 	}
 
 	fprintf(system, "%d Cycle: ", cur_cycle);
-	printf("%d Cycle: ", cur_cycle);
 
 	if(cur != NULL)
 	{
-		fprintf(system, "Process#%d running code %s line %d(op %d, arg %d)\n", cur->p_id, cur->name.c_str(), cur->code_idx+1, cur->code_array[cur->code_idx].first, cur->code_array[cur->code_idx].second);
-		printf("Process#%d running code %s line %d(op %d, arg %d)\n", cur->p_id, cur->name.c_str(), cur->code_idx+1, cur->code_array[cur->code_idx].first, cur->code_array[cur->code_idx].second);
+		fprintf(system, "Process#%d running code %s line %d(op %d, arg %d)", cur->p_id, cur->name.c_str(), cur->code_idx+1, cur->code_array[cur->code_idx].first, cur->code_array[cur->code_idx].second);
 	}
+	fprintf(system, "\n");
 
 	fprintf(system, "RunQueue: ");
-	printf("RunQueue: ");
 	if(q.empty())
 	{
 		fprintf(system, "Empty");
-		printf("Empty");
 	}
 	else
 	{
 		for(auto it = q.begin(); it != q.end(); it++)
 		{
 			fprintf(system, "%d(%s) ", (*it)->p_id, (*it)->name.c_str());
-			printf("%d(%s) ", (*it)->p_id, (*it)->name.c_str());
 		}
 	}
 	fprintf(system, "\n");
-	printf("\n");
 
 	fprintf(system, "SleepList: ");
-	printf("SleepList: ");
 	if(sleep.empty())
 	{
 		fprintf(system, "Empty");
-		printf("Empty");
 	}
 	else
 	{
 		for(auto it = sleep.begin(); it != sleep.end(); it++)
 		{
 			fprintf(system, "%d(%s) ", (*it)->p_id, (*it)->name.c_str());
-			printf("%d(%s) ", (*it)->p_id, (*it)->name.c_str());
 		}
 	}
 	fprintf(system, "\n");
-	printf("\n");
 
 	fprintf(system, "IOWait List: ");
-	printf("IOWait List: ");
 	if(IO.empty())
 	{
 		fprintf(system, "Empty");
-		printf("Empty");
 	}
 	else
 	{
 		for(auto it = IO.begin(); it != IO.end(); it++)
 		{
 			fprintf(system, "%d(%s) ", (*it)->p_id, (*it)->name.c_str());
-			printf("%d(%s) ", (*it)->p_id, (*it)->name.c_str());
 		}
 	}
 	fprintf(system, "\n");
-	printf("\n");
 
+	fprintf(system, "|");
+	for(int i = 0; i < pmem->total_size; i++)
+	{
+		char sep = ' ';
+		
+		if( (pmem->mem+i)->reverse == NULL)
+		{
+			if(i == pmem->total_size-1 || (pmem->mem+i+1)->reverse != NULL)
+				sep = '|';
+			fprintf(system, "---%c", sep);
+		}
+		else
+		{
+			if(i == pmem->total_size-1 || (pmem->mem+i+1)->reverse == NULL)
+				sep = '|';
+			fprintf(system, "%d#%d%c", (pmem->mem+i)->reverse->p_id, (pmem->mem+i)->reverse->a_id, sep);
+		}
+	}
 
+	fprintf(system, "\nLRU:");
+	for(auto it = pmem->LRU.begin(); it != pmem->LRU.end(); it++)
+	{
+		fprintf(system, " (%d:%d)", it->first.first, it->first.second);
+	}
 
 	fprintf(system, "\n");
-	printf("\n");
+	fprintf(system, "\n");
 
 	///////////////////////////
 
 	//Process 명령 수행
-	int temp = cur->do_process();
-	if(cur->code_idx == (int)cur->code_array.size())
+	
+	if(!do_nothing)
 	{
-		process_time = max_process;
-		cur = NULL;
-	}
-
-	if(cur != NULL)
-	{	
-		if(temp == 0 || temp == 1 || temp == 2 || temp == 3);
-		else if(temp == 4)
+		int temp = cur->do_process();
+		if(cur->code_idx == (int)cur->code_array.size())
 		{
-			//Sleep
-			if(cur->sleep_time == 0)
+			process_time = max_process;
+			cur = NULL;
+		}
+	
+		if(cur != NULL)
+		{	
+			if(temp == 0 || temp == 1 || temp == 2 || temp == 3);
+			else if(temp == 4)
 			{
-				q.push_back(cur);
+				//Sleep
+				if(cur->sleep_time == 0)
+				{
+					q.push_back(cur);
+					cur = NULL;
+				}
+				else
+				{
+					sleep.push_back(cur);
+					cur = NULL;
+				}
+			}
+			else if(temp == 5)
+			{
+				//IOWait
+				IO.push_back(cur);
 				cur = NULL;
 			}
-			else
-			{
-				sleep.push_back(cur);
-			cur = NULL;
-			}
-		}
-		else if(temp == 5)
-		{
-			//IOWait
-			IO.push_back(cur);
-			cur = NULL;
 		}
 	}
 	/////////////////////////////////
-
 
 	if(cur != NULL)
 	{
@@ -290,7 +304,6 @@ void Scheduler::process()
 	}
 	else
 		process_time = max_process;
-
 
 	for(int i = 0; i < sleep.size(); i++)
 		sleep[i]->sleep_time--;
@@ -337,9 +350,8 @@ int main()
 		sch.process();
 	}
 
-	while(!sch.q.empty() || sch.cur != NULL || !sch.sleep.empty())
+	while(!sch.q.empty() || sch.cur != NULL || !sch.sleep.empty() || !sch.IO.empty())
 	{
-		exit(0);
 		sch.process();
 	}
 
