@@ -24,7 +24,6 @@ int Process::do_process()
 	switch(op)
 	{
 		case 0:
-			printf("%d\n", p_id);
 			vmem->allocate(arg);
 			break;
 		case 1:

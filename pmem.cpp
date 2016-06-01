@@ -2,6 +2,9 @@
 #include "pmem.h"
 #include "vmem.h"
 #include<cstdlib>
+#include<queue>
+
+using namespace std;
 
 Memory::Memory()
 {
@@ -54,11 +57,12 @@ int Pmem::find_empty(int size, int idx) // return PBlock idx , if not exit retur
 	return result;
 }
 
-void Pmem::update_LRU(int p_id, int a_id)
+void Pmem::update_LRU(int p_id, int a_id, int tree_idx)
 {
 	if(LRU.size() == 0)	return;
 
 	pair<pair<int,int>, int> selected;
+	bool select = false;
 	int idx;
 	for(int i = 0; i < LRU.size(); i++)
 	{
@@ -66,11 +70,16 @@ void Pmem::update_LRU(int p_id, int a_id)
 		{
 			selected = LRU[i];
 			idx = i;
+			select = true;
 			break;
 		}
 	}
-	LRU.erase(LRU.begin()+idx);
-	LRU.push_back(selected);
+
+	if(select)
+	{
+		LRU.erase(LRU.begin()+idx);
+		LRU.push_back(selected);
+	}
 }
 
 void Pmem::pop_LRU()
@@ -82,14 +91,42 @@ void Pmem::pop_LRU()
 	}
 }
 
-void Pmem::deallocate(int p_id)
+void Pmem::pop_LRU(int t_idx)
 {
+	for(int i = 0; i < LRU.size(); i++)
+	{
+		if(LRU[i].second == t_idx)
+		{
+			LRU.erase(LRU.begin()+i);
+			return;
+		}
+	}
+}
+
+void Pmem::pop_LRU(int p_id, int a_id)
+{
+	if(LRU.size() != 0)
+	{
+		for(int i = 0; i < LRU.size(); i++)
+		{
+			if(LRU[i].first.first == p_id && LRU[i].first.second == a_id)
+			{
+				LRU.erase(LRU.begin()+i);
+				return;
+			}
+		}
+	}
+}
+
+void Pmem::deallocate(int p_id) // tree_idx
+{
+	pop_LRU(p_id);
 	for(int i = 0; i < arr[p_id].size; i++)
 	{
 		VBlock* cur = (arr[p_id].start+i)->reverse;
 		if(cur == NULL)	break;
-		(arr[p_id].start+i)->reverse = NULL;
 		cur->valid = false;
+		(arr[p_id].start+i)->reverse = NULL;
 	}
 	arr[p_id].matched = false;
 	
@@ -100,7 +137,7 @@ void Pmem::deallocate(int p_id)
 	}
 }
 
-void Pmem::allocate(VBlock* vmem, int size, int p_id, int a_id)
+int Pmem::allocate(VBlock* vmem, int size, int p_id, int a_id)
 {
 	while(1)
 	{
@@ -108,12 +145,10 @@ void Pmem::allocate(VBlock* vmem, int size, int p_id, int a_id)
 
 		if(idx == -1)
 		{
-			printf("%d %d : %d %d\n", p_id, a_id, LRU[0].first.first, LRU[1].first.second);
-			pop_LRU();
+			deallocate(LRU[0].second);
 			continue;
 		}
 	
-		printf("selected idx : %d\n", idx);
 		arr[idx].matched = true;
 		int temp = idx;
 		while(temp != 0)
@@ -130,6 +165,75 @@ void Pmem::allocate(VBlock* vmem, int size, int p_id, int a_id)
 			(vmem+i)->valid = true;
 		}
 		LRU.push_back(make_pair(make_pair(p_id, a_id), idx));
+		return idx;
+	}
+}
+
+void Pmem::clear(int idx)
+{
+	if(idx >= total_size*2)	return;
+
+	if(arr[idx].matched)
+	{
+		deallocate(idx);
+	}
+	clear(idx*2);
+	clear(idx*2+1);
+}
+
+int Pmem::allocate2(VBlock* vmem, int p_id, int a_id, int idx) // 1 : success, -1 : fail
+{
+	if(arr[idx].start->reverse != NULL && arr[idx].start->reverse == vmem)
+	{
+		printf("djgksdlj\n");
+		clear(idx);
+	
+		arr[idx].matched = true;
+		int temp = idx;
+		while(temp != 0)
+		{
+			arr[temp].child_selected--;
+			temp /= 2;
+		}
+	
+		for(int i = 0; i < arr[idx].size; i++)
+		{
+			((arr[idx].start)+i)->reverse = (vmem+i);
+			(vmem+i)->match = ((arr[idx].start)+i);
+			(vmem+i)->valid = true;
+		}
+		update_LRU(p_id, a_id, idx);
+		return 1;
+	}
+	return -1;
+}
+
+void Pmem::print(FILE* out, int idx)
+{
+	if(arr[idx].matched)
+	{
+		for(int i = 0; i < arr[idx].size; i++)
+		{
+			char sep = ' ';
+			if(i == arr[idx].size-1)
+				sep = '|';
+			fprintf(out, "%d#%d%c", arr[idx].start->reverse->p_id, arr[idx].start->reverse->a_id, sep);
+			
+		}
 		return;
 	}
+	if(arr[idx].child_selected == 0)
+	{
+		for(int i = 0; i < arr[idx].size; i++)
+		{
+			char sep = ' ';
+			if(i == arr[idx].size-1)
+				sep = '|';
+			fprintf(out, "---%c", sep);
+			
+		}
+		return;
+	}
+	print(out, idx*2);
+	print(out, idx*2+1);
 }

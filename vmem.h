@@ -1,6 +1,9 @@
 #ifndef VMEM_H_
 #define VMEM_H_
 #include "pmem.h"
+#include <vector>
+
+using namespace std;
 
 class Memory;
 class Pmem;
@@ -22,6 +25,7 @@ public:
 	Pmem* pmem;
 	int size;
 	int p_id;
+	vector<pair<int, int>> t_idx; // tree_idx, size
 
 	Vmem(int size, Pmem* mem, int p_id);
 	void allocate(int obj_size);

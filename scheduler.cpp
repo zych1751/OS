@@ -86,6 +86,7 @@ void Scheduler::make_process(string name)
 
 void Scheduler::process()
 {
+	printf("Cycle : %d\n", cur_cycle);
 	//일정주기마다 cycle 분배
 	remain_time--;
 	if(remain_time == 0)
@@ -219,7 +220,7 @@ void Scheduler::process()
 	}
 	fprintf(system, "\n");
 
-	fprintf(system, "|");
+	/*fprintf(system, "|");
 	for(int i = 0; i < pmem->total_size; i++)
 	{
 		char sep = ' ';
@@ -238,12 +239,14 @@ void Scheduler::process()
 		}
 	}
 
+
+	fprintf(system, "\n");*/
+	pmem->print(system, 1);
 	fprintf(system, "\nLRU:");
 	for(auto it = pmem->LRU.begin(); it != pmem->LRU.end(); it++)
 	{
 		fprintf(system, " (%d:%d)", it->first.first, it->first.second);
 	}
-
 	fprintf(system, "\n");
 	fprintf(system, "\n");
 
