@@ -51,8 +51,6 @@ Scheduler::Scheduler()
 	system = fopen("system.txt", "w");
 
 	cur = NULL;
-	remain_time = max_remain;
-	process_time = max_process;
 	cur_cycle = 0;
 	p_id = 0;
 	input = false;
@@ -86,7 +84,7 @@ void Scheduler::make_process(string name)
 
 void Scheduler::process()
 {
-	printf("Cycle : %d\n", cur_cycle);
+
 	//일정주기마다 cycle 분배
 	remain_time--;
 	if(remain_time == 0)
@@ -123,6 +121,8 @@ void Scheduler::process()
 	///////////////////////////////////////////
 
 	//모든 큐에 퀀텀이 0일때 사이클 앞당기기
+	//정확한 조건이 필요함!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	bool all_zero = true;
 	for(auto it = q.begin(); it != q.end(); it++)
 		if((*it)->time != 0)
@@ -131,12 +131,14 @@ void Scheduler::process()
 			break;
 		}
 
-	if(q.size() != 0 && all_zero)
+	if(all_zero && cur == NULL)
 	{
 		remain_time = max_remain;
 		give_time_quantum(give_time);
 	}
 	/////////////////////////////////////
+
+	printf("%d : %d\n", cur_cycle, remain_time);
 
 	bool change = false;
 	bool do_nothing = false;
@@ -153,6 +155,7 @@ void Scheduler::process()
 			Process* temp = q.front();
 			q.pop_front();
 			cur = temp;
+			printf("%d\n", cur->time);
 			process_time = max_process;
 			change = true;
 
@@ -220,27 +223,6 @@ void Scheduler::process()
 	}
 	fprintf(system, "\n");
 
-	/*fprintf(system, "|");
-	for(int i = 0; i < pmem->total_size; i++)
-	{
-		char sep = ' ';
-		
-		if( (pmem->mem+i)->reverse == NULL)
-		{
-			if(i == pmem->total_size-1 || (pmem->mem+i+1)->reverse != NULL)
-				sep = '|';
-			fprintf(system, "---%c", sep);
-		}
-		else
-		{
-			if(i == pmem->total_size-1 || (pmem->mem+i+1)->reverse == NULL)
-				sep = '|';
-			fprintf(system, "%d#%d%c", (pmem->mem+i)->reverse->p_id, (pmem->mem+i)->reverse->a_id, sep);
-		}
-	}
-
-
-	fprintf(system, "\n");*/
 	pmem->print(system, 1);
 	fprintf(system, "\nLRU:");
 	for(auto it = pmem->LRU.begin(); it != pmem->LRU.end(); it++)
@@ -254,6 +236,7 @@ void Scheduler::process()
 
 	//Process 명령 수행
 	
+
 	if(!do_nothing)
 	{
 		int temp = cur->do_process();
@@ -329,6 +312,9 @@ int main()
 	sch.page_num = p_mem/page_size;
 	sch.max_process = max_process;
 	sch.give_time = give_time;
+
+	sch.remain_time = max_remain;
+	sch.process_time = max_process;
 
 	int time, p_id;
 	string str;

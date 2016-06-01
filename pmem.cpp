@@ -57,7 +57,7 @@ int Pmem::find_empty(int size, int idx) // return PBlock idx , if not exit retur
 	return result;
 }
 
-void Pmem::update_LRU(int p_id, int a_id, int tree_idx)
+void Pmem::update_LRU(int p_id, int a_id)
 {
 	if(LRU.size() == 0)	return;
 
@@ -202,7 +202,7 @@ int Pmem::allocate2(VBlock* vmem, int p_id, int a_id, int idx) // 1 : success, -
 			(vmem+i)->match = ((arr[idx].start)+i);
 			(vmem+i)->valid = true;
 		}
-		update_LRU(p_id, a_id, idx);
+		update_LRU(p_id, a_id);
 		return 1;
 	}
 	return -1;

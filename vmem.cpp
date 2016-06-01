@@ -1,8 +1,7 @@
 #include "vmem.h"
 #include <cstdio>
 
-VBlock::VBlock()
-{
+VBlock::VBlock(){
 	valid = false;
 }
 
@@ -41,33 +40,39 @@ void Vmem::allocate(int obj_size)
 		}
 	}
 
+	if(start == NULL)
+		printf("ERROR!!!!\n");
 	int t_id = pmem->allocate(start, obj_size, p_id, a_id);
 	t_idx.push_back(make_pair(t_id, obj_size));
 	a_id++;
 }
 
 void Vmem::access(int a_id1){
+	int selected;
 	bool valid = false;
 	for(int i = 0; i < size; i++)
-		if(arr[i].a_id == a_id1 && arr[i].valid)
+		if(arr[i].a_id == a_id1)
 		{
-			valid = true;
+			selected = i;
+			if(arr[i].valid)
+				valid = true;
 			break;
 		}
 
 	if(!valid)
 	{
-		int t_id = pmem->allocate(arr+a_id1, t_idx[a_id1].second, p_id, a_id1);
+		int t_id = pmem->allocate(arr+selected, t_idx[a_id1].second, p_id, a_id1);
 		t_idx[a_id1].first = t_id;
 	}
 	else
 	{
-		pmem->update_LRU(p_id, a_id1, t_idx[a_id1].first);
+		pmem->update_LRU(p_id, a_id1);
 	}
 }
 
 void Vmem::deallocate(int a_id1) // LRU처리
 {
+	pmem->deallocate(t_idx[a_id1].first);
 	for(int i = 0; i < size; i++)
 	{
 		if(arr[i].a_id == a_id1)
@@ -79,5 +84,4 @@ void Vmem::deallocate(int a_id1) // LRU처리
 			arr[i].a_id = -1;
 		}
 	}
-	pmem->pop_LRU(p_id, a_id1);
 }

@@ -36,7 +36,7 @@ public:
 	void pop_LRU(int p_id, int a_id);
 	int allocate(VBlock* vmem, int size, int p_id, int a_id); // return PBlock idx
 	void deallocate(int p_id);	//PBlock idx
-	void update_LRU(int p_id, int a_id, int tree_idx);
+	void update_LRU(int p_id, int a_id);
 	int allocate2(VBlock* vmem, int p_id, int a_id, int idx);
 	void clear(int idx);
 	void print(FILE* out, int idx);
