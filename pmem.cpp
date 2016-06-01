@@ -53,18 +53,11 @@ int Pmem::find_empty(int size, int idx) // return PBlock idx , if not exit retur
 
 void Pmem::pop_LRU()
 {
-	int selected, max_val = LRU_idx+1;
-	for(int i = 0; i < LRU.size(); i++)
+	if(LRU.size() != 0)
 	{
-		if(max_val > LRU[i].second)
-		{
-			selected = LRU[i].first;
-			max_val = LRU[i].second;
-		}
+		deallocate(LRU[0].);
+		LRU.erase(LRU.begin()+selected);
 	}
-
-	deallocated(selected);
-	LRU.erase(LRU.begin()+selected);
 }
 
 void Pmem::deallocate(int p_id)
@@ -78,7 +71,7 @@ void Pmem::deallocate(int p_id)
 	arr[p_id].matched = false;
 }
 
-void Pmem::allocate(VBlock* vmem, int size)
+void Pmem::allocate(VBlock* vmem, int size, int p_id, int a_id)
 {
 	while(1)
 	{
@@ -95,10 +88,11 @@ void Pmem::allocate(VBlock* vmem, int size)
 		for(int i = 0; i < size; i++)
 		{
 			((arr[idx].start)+i)->reverse = (vmem+i);
+			(vmem+i)->a_id = a_id;
 			(vmem+i)->match = ((arr[idx].start)+i);
 			(vmem+i)->valid = true;
 		}
-		LRU.push_back(make_pair(idx, LRU_idx++));
-		break;
+		LRU.push_back(make_pair(p_id, a_id));
+		return;
 	}
 }

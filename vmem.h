@@ -20,10 +20,12 @@ public:
 	int a_id;
 	VBlock* arr;
 	Pmem* pmem;
+	int size;
 
 	Vmem(int size, Pmem* mem);
-	void allocate(int size);
+	void allocate(int obj_size);
 	void access(int a_id);
+	void deallocate(int a_id);
 };
 
 #endif

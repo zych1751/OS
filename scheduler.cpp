@@ -1,5 +1,7 @@
 #include <cstdio>
 #include "process.h"
+#include "pmem.h"
+#include "vmem.h"
 #include <deque>
 #include <vector>
 #include <string>
@@ -14,13 +16,16 @@ public:
 	Process* cur;
 	vector<Process*> sleep;
 	vector<Process*> IO;
+	Pmem* pmem;
+	FILE* scheduler;
+	FILE* system;
 	
 	int remain_time; // if remain_time == 0, give time_quantum
 	int max_remain; // 프로세스에 사이클을 주는 주기
 
 	int give_time; // 모든 프로세스에 주는 사이클 수
 	
-	int v_mem, p_mem, page_size;
+	int v_mem, page_size;
 	int process_num;
 
 	int process_time;
@@ -42,6 +47,9 @@ public:
 
 Scheduler::Scheduler()
 {
+	scheduler = fopen("scheduler.txt", "w");
+	system = fopen("system.txt", "w");
+
 	cur = NULL;
 	remain_time = max_remain;
 	process_time = max_process;
@@ -71,7 +79,7 @@ void Scheduler::give_time_quantum(int time)
 
 void Scheduler::make_process(string name)
 {
-	Process* a = new Process(p_id, name, give_time, page_num);
+	Process* a = new Process(p_id, name, give_time, page_num, pmem);
 	q.push_back(a);
 	p_id++;
 }
@@ -157,20 +165,79 @@ void Scheduler::process()
 	//system.txt 정보 출력
 	if(change)
 	{
-		printf("%d\t%d\t", cur_cycle, cur->p_id);
-		cout << cur->name << "\n";
-		/*for(auto it = q.begin(); it != q.end(); it++)
-			cout << (*it)->name << " ";
-		printf("\n");
-		for(auto it = sleep.begin(); it != sleep.end(); it++)
-			cout << (*it)->name << " ";
-		printf("\n");
-		for(auto it = IO.begin(); it != IO.end(); it++)
-			cout << (*it)->name << " ";
-		printf("\n");*/
+		fprintf(scheduler, "%d\t%d\t%s\n", cur_cycle, cur->p_id, cur->name.c_str());
 	}
+
+	fprintf(system, "%d Cycle: ", cur_cycle);
+	printf("%d Cycle: ", cur_cycle);
+
+	if(cur != NULL)
+	{
+		fprintf(system, "Process#%d running code %s line %d(op %d, arg %d)\n", cur->p_id, cur->name.c_str(), cur->code_idx+1, cur->code_array[cur->code_idx].first, cur->code_array[cur->code_idx].second);
+		printf("Process#%d running code %s line %d(op %d, arg %d)\n", cur->p_id, cur->name.c_str(), cur->code_idx+1, cur->code_array[cur->code_idx].first, cur->code_array[cur->code_idx].second);
+	}
+
+	fprintf(system, "RunQueue: ");
+	printf("RunQueue: ");
+	if(q.empty())
+	{
+		fprintf(system, "Empty");
+		printf("Empty");
+	}
+	else
+	{
+		for(auto it = q.begin(); it != q.end(); it++)
+		{
+			fprintf(system, "%d(%s) ", (*it)->p_id, (*it)->name.c_str());
+			printf("%d(%s) ", (*it)->p_id, (*it)->name.c_str());
+		}
+	}
+	fprintf(system, "\n");
+	printf("\n");
+
+	fprintf(system, "SleepList: ");
+	printf("SleepList: ");
+	if(sleep.empty())
+	{
+		fprintf(system, "Empty");
+		printf("Empty");
+	}
+	else
+	{
+		for(auto it = sleep.begin(); it != sleep.end(); it++)
+		{
+			fprintf(system, "%d(%s) ", (*it)->p_id, (*it)->name.c_str());
+			printf("%d(%s) ", (*it)->p_id, (*it)->name.c_str());
+		}
+	}
+	fprintf(system, "\n");
+	printf("\n");
+
+	fprintf(system, "IOWait List: ");
+	printf("IOWait List: ");
+	if(IO.empty())
+	{
+		fprintf(system, "Empty");
+		printf("Empty");
+	}
+	else
+	{
+		for(auto it = IO.begin(); it != IO.end(); it++)
+		{
+			fprintf(system, "%d(%s) ", (*it)->p_id, (*it)->name.c_str());
+			printf("%d(%s) ", (*it)->p_id, (*it)->name.c_str());
+		}
+	}
+	fprintf(system, "\n");
+	printf("\n");
+
+
+
+	fprintf(system, "\n");
+	printf("\n");
+
 	///////////////////////////
-	
+
 	//Process 명령 수행
 	int temp = cur->do_process();
 	if(cur->code_idx == (int)cur->code_array.size())
@@ -241,9 +308,9 @@ int main()
 
 	sch.process_num = process_num;
 	sch.max_remain = max_remain;
-	sch.v_mem = v_mem;
-	sch.p_mem = p_mem;
-	sch.page_size = page_size;
+	sch.v_mem = v_mem/page_size;
+	sch.pmem = new Pmem(p_mem);
+	sch.page_num = p_mem/page_size;
 	sch.max_process = max_process;
 	sch.give_time = give_time;
 
