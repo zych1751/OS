@@ -19,11 +19,13 @@ public:
 	int code_length;
 	int sleep_time;
 	FILE* f;
+	FILE* out;
 	Vmem* vmem;
 	int virtual_page_num;
 
 	Process(int p_id, string name, int feed_size, int virtual_page_num, Pmem* mem);
 	int do_process();
+	void do_print(int cycle);
 };
 
 #endif

@@ -120,6 +120,9 @@ void Pmem::pop_LRU(int p_id, int a_id)
 
 void Pmem::deallocate(int p_id) // tree_idx
 {
+	if(!arr[p_id].matched)	return;
+	// sdgdsgsg
+
 	pop_LRU(p_id);
 	for(int i = 0; i < arr[p_id].size; i++)
 	{
@@ -185,7 +188,6 @@ int Pmem::allocate2(VBlock* vmem, int p_id, int a_id, int idx) // 1 : success, -
 {
 	if(arr[idx].start->reverse != NULL && arr[idx].start->reverse == vmem)
 	{
-		printf("djgksdlj\n");
 		clear(idx);
 	
 		arr[idx].matched = true;

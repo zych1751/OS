@@ -73,11 +73,17 @@ void Scheduler::give_time_quantum(int time)
 {
 	for(auto it = q.begin(); it != q.end(); it++)
 		(*it)->time += time;
+	for(auto it = sleep.begin(); it != sleep.end(); it++)
+		(*it)->time += time;
+	for(auto it = IO.begin(); it != IO.end(); it++)
+		(*it)->time += time;
+	if(cur != NULL)
+		cur->time += time;
 }
 
 void Scheduler::make_process(string name)
 {
-	Process* a = new Process(p_id, name, give_time, page_num, pmem);
+	Process* a = new Process(p_id, name, give_time, v_mem, pmem);
 	q.push_back(a);
 	p_id++;
 }
@@ -138,7 +144,6 @@ void Scheduler::process()
 	}
 	/////////////////////////////////////
 
-	printf("%d : %d\n", cur_cycle, remain_time);
 
 	bool change = false;
 	bool do_nothing = false;
@@ -155,7 +160,6 @@ void Scheduler::process()
 			Process* temp = q.front();
 			q.pop_front();
 			cur = temp;
-			printf("%d\n", cur->time);
 			process_time = max_process;
 			change = true;
 
@@ -223,6 +227,7 @@ void Scheduler::process()
 	}
 	fprintf(system, "\n");
 
+	fprintf(system, "|");
 	pmem->print(system, 1);
 	fprintf(system, "\nLRU:");
 	for(auto it = pmem->LRU.begin(); it != pmem->LRU.end(); it++)
@@ -240,12 +245,14 @@ void Scheduler::process()
 	if(!do_nothing)
 	{
 		int temp = cur->do_process();
+		cur->do_print(cur_cycle);
 		if(cur->code_idx == (int)cur->code_array.size())
 		{
+			cur->vmem->all_deallocate();
 			process_time = max_process;
 			cur = NULL;
 		}
-	
+
 		if(cur != NULL)
 		{	
 			if(temp == 0 || temp == 1 || temp == 2 || temp == 3);
@@ -298,12 +305,14 @@ void Scheduler::process()
 }
 
 
-int main()
+int main(int argc, char** argv)
 {
 	Scheduler sch;
+	FILE* input;
+	input = fopen(argv[1], "r");
 
 	int process_num, max_process, v_mem, p_mem, page_size, max_remain, give_time;
-	scanf("%d %d %d %d %d %d %d", &process_num, &max_process, &v_mem, &p_mem, &page_size, &max_remain, &give_time);
+	fscanf(input, "%d %d %d %d %d %d %d", &process_num, &max_process, &v_mem, &p_mem, &page_size, &max_remain, &give_time);
 
 	sch.process_num = process_num;
 	sch.max_remain = max_remain;
@@ -317,16 +326,19 @@ int main()
 	sch.process_time = max_process;
 
 	int time, p_id;
+	char temp_str[100];
 	string str;
 	for(int i = 0; i < process_num; i++)
 	{
-		cin >> time >> str;
+		fscanf(input, "%d %s", &time, temp_str);
+		str = temp_str;
 		while(sch.cur_cycle != time)
 			sch.process();
 
+
 		if(str == "INPUT")
 		{
-			cin >> p_id;
+			fscanf(input, "%d", &p_id);
 			sch.IO_pop(p_id);
 		}
 		else

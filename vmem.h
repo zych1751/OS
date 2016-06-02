@@ -31,6 +31,7 @@ public:
 	void allocate(int obj_size);
 	void access(int a_id);
 	void deallocate(int a_id);
+	void all_deallocate();
 };
 
 #endif

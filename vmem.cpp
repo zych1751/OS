@@ -85,3 +85,25 @@ void Vmem::deallocate(int a_id1) // LRU처리
 		}
 	}
 }
+
+void Vmem::all_deallocate()
+{
+	for(int i = 0; i < size; i++)
+	{
+		if(arr[i].match != NULL)
+		{
+			if(arr[i].match->reverse == arr+i)
+			{
+				pmem->deallocate(t_idx[arr[i].a_id].first);
+				arr[i].match->reverse = NULL;
+			}
+
+			if(arr[i].valid)
+			{
+				arr[i].valid = false;
+			}
+			arr[i].match = NULL;
+			arr[i].a_id = -1;
+		}
+	}
+}
