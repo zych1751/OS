@@ -39,10 +39,7 @@ public:
 	void IO_pop(int p_id);
 
 	int cur_cycle;
-	bool input;
-
-	int next_process_cycle;
-	string next_process_name;
+	vector<string> input;
 };
 
 Scheduler::Scheduler()
@@ -53,7 +50,6 @@ Scheduler::Scheduler()
 	cur = NULL;
 	cur_cycle = 0;
 	p_id = 0;
-	input = false;
 }
 
 void Scheduler::IO_pop(int p_id)
@@ -90,9 +86,7 @@ void Scheduler::make_process(string name)
 
 void Scheduler::process()
 {
-
 	//일정주기마다 cycle 분배
-	remain_time--;
 	if(remain_time == 0)
 	{
 		remain_time = max_remain;
@@ -119,16 +113,15 @@ void Scheduler::process()
 	///////////////////////////////
 	
 	//input으로 주어진 Process 생성작업의 시행
-	if(input)
+	//언제??????????????
+	while(input.size() != 0)
 	{
-		make_process(next_process_name);
-		input = false;
+		make_process(input[0]);
+		input.erase(input.begin());
 	}
 	///////////////////////////////////////////
 
 	//모든 큐에 퀀텀이 0일때 사이클 앞당기기
-	//정확한 조건이 필요함!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	bool all_zero = true;
 	for(auto it = q.begin(); it != q.end(); it++)
 		if((*it)->time != 0)
@@ -137,13 +130,12 @@ void Scheduler::process()
 			break;
 		}
 
-	if(all_zero && cur == NULL)
+	if(all_zero && cur == NULL && !q.empty())
 	{
 		remain_time = max_remain;
 		give_time_quantum(give_time);
 	}
 	/////////////////////////////////////
-
 
 	bool change = false;
 	bool do_nothing = false;
@@ -259,7 +251,7 @@ void Scheduler::process()
 			else if(temp == 4)
 			{
 				//Sleep
-				if(cur->sleep_time == 0)
+				if(cur->sleep_time == 1)
 				{
 					q.push_back(cur);
 					cur = NULL;
@@ -302,6 +294,7 @@ void Scheduler::process()
 		sleep[i]->sleep_time--;
 
 	cur_cycle++;
+	remain_time--;
 }
 
 
@@ -317,8 +310,8 @@ int main(int argc, char** argv)
 	sch.process_num = process_num;
 	sch.max_remain = max_remain;
 	sch.v_mem = v_mem/page_size;
-	sch.pmem = new Pmem(p_mem);
 	sch.page_num = p_mem/page_size;
+	sch.pmem = new Pmem(p_mem/page_size);
 	sch.max_process = max_process;
 	sch.give_time = give_time;
 
@@ -343,12 +336,8 @@ int main(int argc, char** argv)
 		}
 		else
 		{
-			sch.input = true;
-			sch.next_process_cycle = time;
-			sch.next_process_name = str;
+			sch.input.push_back(str);
 		}
-
-		sch.process();
 	}
 
 	while(!sch.q.empty() || sch.cur != NULL || !sch.sleep.empty() || !sch.IO.empty())

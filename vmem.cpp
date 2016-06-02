@@ -72,7 +72,8 @@ void Vmem::access(int a_id1){
 
 void Vmem::deallocate(int a_id1) // LRU처리
 {
-	pmem->deallocate(t_idx[a_id1].first);
+	if(pmem->arr[t_idx[a_id1].first].start->reverse->a_id == a_id1)
+		pmem->deallocate(t_idx[a_id1].first);
 	for(int i = 0; i < size; i++)
 	{
 		if(arr[i].a_id == a_id1)
